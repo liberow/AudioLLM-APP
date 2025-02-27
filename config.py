@@ -1,0 +1,1 @@
+MODELS_PATH = "/root/.cache/huggingface/zzl/models"

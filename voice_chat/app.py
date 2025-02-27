@@ -21,6 +21,7 @@ from utils.rich_format_small import format_str_v2
 from cosyvoice.cli.cosyvoice import CosyVoice
 from cosyvoice.utils.file_utils import load_wav
 from funasr import AutoModel
+from config import MODELS_PATH
 
 # api = HubApi()
 # MS_API_TOKEN = os.environ.get('MS_API_TOKEN')
@@ -29,13 +30,20 @@ from funasr import AutoModel
 DS_API_TOKEN = os.getenv('DS_API_TOKEN')
 dashscope.api_key = DS_API_TOKEN
 
+tts_model_name_or_path = f"{MODELS_PATH}/cosyvoice/pretrained_models/CosyVoice-300M-Instruct"
+asr_model_name_or_path = f"{MODELS_PATH}/sensevoice/SenseVoiceSmall"
+
 speaker_name = '中文女'
-cosyvoice = CosyVoice('speech_tts/CosyVoice-300M-Instruct')
-asr_model_name_or_path = "iic/SenseVoiceSmall"
+cosyvoice = CosyVoice(tts_model_name_or_path)
+# cosyvoice = CosyVoice2(f"{MODELS_PATH}/pretrained_models/CosyVoice2-0.5B")
+# asr_model_name_or_path = "iic/SenseVoiceSmall"
 sense_voice_model = AutoModel(model=asr_model_name_or_path,
                   vad_model="fsmn-vad",
                   vad_kwargs={"max_single_segment_time": 30000},
-                  trust_remote_code=True, device="cuda:0", remote_code="./sensevoice/model.py")
+                  trust_remote_code=True, 
+                  device="cuda:0", 
+                  remote_code="./sensevoice/model.py"
+                  )
 
 model_name = "qwen2-72b-instruct"
 default_system = """
@@ -244,8 +252,15 @@ def text_to_speech(text):
     # text_list = preprocess(text)
     text_list = [tts_text]
     for i in text_list:
-      output = cosyvoice.inference_sft(i, speaker_name)
-      yield (22050, output['tts_speech'].numpy().flatten())
+    #   output = cosyvoice.inference_sft(i, speaker_name)
+    #   yield (22050, output['tts_speech'].numpy().flatten())
+        # 假设 cosyvoice.inference_sft 返回的是一个生成器
+        tts_generator = cosyvoice.inference_sft(i, speaker_name)
+        for output in tts_generator:  # 迭代生成器
+            if 'tts_speech' in output:  # 确保输出中包含 'tts_speech'
+                yield (22050, output['tts_speech'].numpy().flatten())
+            else:
+                print("Warning: 'tts_speech' not found in output")    
 
 
 with gr.Blocks() as demo:
