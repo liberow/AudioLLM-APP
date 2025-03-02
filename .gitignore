@@ -163,3 +163,5 @@ cython_debug/
 
 # Custom 
 voice_chat/README.md
+voice_chat/tmp
+voice_chat/log.txt
